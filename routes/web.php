@@ -16,11 +16,9 @@ Route::get('/dashboard', function () {
     $user = auth()->user();
 
     if ($user->isAdmin()) {
-        // Admin → redirect to admin image dashboard
         return redirect()->route('admin.images.index');
     }
 
-    // Normal user → their dashboard in profile dir
     return view('profile.dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
@@ -29,7 +27,6 @@ Route::middleware(['auth', 'admin'])
     ->prefix('admin')
     ->name('admin.')
     ->group(function () {
-        // Admin dashboard = image index
         Route::get('/images', [ImageController::class, 'adminIndex'])->name('images.index');
         Route::get('/images/create', [ImageController::class, 'create'])->name('images.create');
         Route::post('/images', [ImageController::class, 'store'])->name('images.store');

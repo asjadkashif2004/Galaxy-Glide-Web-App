@@ -3,19 +3,20 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\URL;
 
-class AuthServiceProvider extends ServiceProvider
+class AppServiceProvider extends ServiceProvider
 {
-    // If you use policies, you can map them here:
-    protected $policies = [
-        // Model::class => Policy::class,
-    ];
+    public function register(): void
+    {
+        //
+    }
 
     public function boot(): void
     {
-        // DO NOT call $this->registerPolicies() on Laravel 10/11+.
-        // Just define your gates here.
-        Gate::define('admin', fn ($user) => $user->role === 'admin');
+        // Force HTTPS when using ngrok (optional)
+        if (str_contains(config('app.url'), 'ngrok')) {
+            URL::forceScheme('https');
+        }
     }
 }

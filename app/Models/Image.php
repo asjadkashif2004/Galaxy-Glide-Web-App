@@ -6,7 +6,19 @@ use Illuminate\Database\Eloquent\Model;
 
 class Image extends Model
 {
-     protected $fillable = ['title','description','type','dzi_path'];
+    
+  protected $fillable = [
+    'title',
+    'type',
+    'description',
+    'mission',
+    'nasa_id',
+    'taken_at',
+    'thumbnail_path',
+    'dzi_path',
+];
+
+  
   public function labels() { return $this->hasMany(Label::class); }
 
     
