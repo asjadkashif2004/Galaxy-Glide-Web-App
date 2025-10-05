@@ -41,8 +41,8 @@ Admins can upload and manage high-resolution space datasets, while users can vie
 ### 1️⃣ Clone Repository
 
 ```bash
-git clone https://github.com/your-username/Nasa-Zoom-Explorer---Web-App.git
-cd Nasa-Zoom-Explorer---Web-App
+git clone https://github.com/your-username/-Galaxy-Glide---Web-App.git
+cd Galaxy-Glide---Web-App
 ```
 
 ### 2️⃣ Install Dependencies
@@ -115,7 +115,6 @@ ngrok http 8000
 
 ## 📊 Roadmap / To Do
 
-* ✍️ Add **annotations/labels** (e.g., mark craters, nebulae, Olympus Mons).
 * 📹 Support **video datasets** (NASA also provides multi-spectral + video data).
 * 🤖 Add **AI-powered pattern discovery** (optional).
 * 🌐 Connect with NASA APIs directly (Worldview, LROC, TESS, EarthData).
