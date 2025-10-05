@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+
+
 use App\Models\Image;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -49,63 +51,11 @@ class ImageController extends Controller
             'photo.mimetypes' => 'Only JPG/JPEG images are allowed.',
         ]);
 
-        $vips = env('VIPS_BIN', 'vips');
+        // Process and save new image
+        $this->processAndSaveImage($request->file('photo'), $data, true);
 
-        // Save original
-        $originalPath = $request->file('photo')->store('originals', 'public');
-        $originalAbs  = Storage::disk('public')->path($originalPath);
-
-        // Name base
-        $basename = Str::slug($request->title ?: pathinfo($originalPath, PATHINFO_FILENAME), '_')
-                    . '_' . now()->format('Ymd_His');
-
-        // Folders
-        Storage::disk('public')->makeDirectory('tiles');
-        Storage::disk('public')->makeDirectory('thumbnails');
-
-        // Paths
-        $dziNoExtAbs = Storage::disk('public')->path("tiles/{$basename}");
-        $dziRel      = "tiles/{$basename}.dzi";
-        $thumbRel    = "thumbnails/{$basename}_thumb.jpg";
-        $thumbAbs    = Storage::disk('public')->path($thumbRel);
-
-        // Fix rotation
-        $uprightAbs = Storage::disk('public')->path("originals/{$basename}_upright.jpg");
-        $procFix = new Process([$vips, 'copy', $originalAbs, $uprightAbs, '--autorotate']);
-        $procFix->setTimeout(0)->run();
-        if (!$procFix->isSuccessful()) $uprightAbs = $originalAbs;
-
-        // DZI
-        $procDzi = new Process([
-            $vips,'dzsave',$uprightAbs,$dziNoExtAbs,
-            '--tile-size','512','--overlap','1','--suffix','.jpg[Q=92,subsample=off,strip]'
-        ]);
-        $procDzi->setTimeout(0)->run();
-
-        if (!$procDzi->isSuccessful()) {
-            $fallback = new Process([$vips,'dzsave',$uprightAbs,$dziNoExtAbs,'--tile-size','256','--overlap','1','--suffix','.jpg']);
-            $fallback->setTimeout(0)->run();
-            if (!$fallback->isSuccessful()) {
-                $err = trim($procDzi->getErrorOutput().PHP_EOL.$fallback->getErrorOutput());
-                return back()->withErrors(['photo'=>"Deep Zoom conversion failed.\n{$err}"]);
-            }
-        }
-
-        // Thumbnail
-        $procThumb = new Process([$vips,'thumbnail',$uprightAbs,$thumbAbs,'600','--crop','centre']);
-        $procThumb->setTimeout(0)->run();
-        $thumbPathForDb = $procThumb->isSuccessful() ? $thumbRel : null;
-
-        // DB
-        Image::create([
-            'title'          => $data['title'],
-            'type'           => $data['type'] ?? null,
-            'description'    => $data['description'] ?? null,
-            'thumbnail_path' => $thumbPathForDb,
-            'dzi_path'       => $dziRel,
-        ]);
-
-        return redirect()->route('admin.images.index')
+        return redirect()
+            ->route('admin.images.index')
             ->with('status', '🛰 Image uploaded successfully with Deep Zoom + thumbnail.');
     }
 
@@ -123,11 +73,37 @@ class ImageController extends Controller
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'type' => 'nullable|string|max:50',
+            'image' => 'nullable|file|mimetypes:image/jpeg|max:512000',
+        ], [
+            'image.mimetypes' => 'Only JPG/JPEG images are allowed.',
         ]);
 
-        $image->update($data);
+        // Update metadata
+        $image->title = $data['title'];
+        $image->description = $data['description'] ?? $image->description;
+        $image->type = $data['type'] ?? $image->type;
 
-        return redirect()->route('admin.images.index')->with('status', '✅ Image details updated successfully!');
+        // Replace if new image uploaded
+        if ($request->hasFile('image')) {
+            if ($image->dzi_path) {
+                $base = pathinfo($image->dzi_path, PATHINFO_FILENAME);
+                Storage::disk('public')->delete($image->dzi_path);
+                Storage::disk('public')->deleteDirectory("tiles/{$base}_files");
+            }
+            if ($image->thumbnail_path) {
+                Storage::disk('public')->delete($image->thumbnail_path);
+            }
+
+            $processed = $this->processAndSaveImage($request->file('image'), $data, false);
+            $image->thumbnail_path = $processed['thumbnail_path'];
+            $image->dzi_path = $processed['dzi_path'];
+        }
+
+        $image->save();
+
+        return redirect()
+            ->route('admin.images.index')
+            ->with('status', '🪐 Image updated and replaced successfully!');
     }
 
     public function destroy(Image $image)
@@ -154,5 +130,69 @@ class ImageController extends Controller
         if (!auth()->check() || !auth()->user()->isAdmin()) {
             abort(403, 'Unauthorized: Admins only.');
         }
+    }
+
+    /**
+     * Common Deep Zoom + Thumbnail generation logic
+     */
+    private function processAndSaveImage($file, $data, $createDb = true)
+    {
+        $vips = env('VIPS_BIN', 'vips');
+
+        $originalPath = $file->store('originals', 'public');
+        $originalAbs  = Storage::disk('public')->path($originalPath);
+
+        $basename = Str::slug($data['title'] ?: pathinfo($originalPath, PATHINFO_FILENAME), '_') . '_' . now()->format('Ymd_His');
+
+        Storage::disk('public')->makeDirectory('tiles');
+        Storage::disk('public')->makeDirectory('thumbnails');
+
+        $dziNoExtAbs = Storage::disk('public')->path("tiles/{$basename}");
+        $dziRel      = "tiles/{$basename}.dzi";
+        $thumbRel    = "thumbnails/{$basename}_thumb.jpg";
+        $thumbAbs    = Storage::disk('public')->path($thumbRel);
+
+        // Fix rotation
+        $uprightAbs = Storage::disk('public')->path("originals/{$basename}_upright.jpg");
+        $procFix = new Process([$vips, 'copy', $originalAbs, $uprightAbs, '--autorotate']);
+        $procFix->setTimeout(0)->run();
+        if (!$procFix->isSuccessful()) $uprightAbs = $originalAbs;
+
+        // Deep Zoom
+        $procDzi = new Process([
+            $vips, 'dzsave', $uprightAbs, $dziNoExtAbs,
+            '--tile-size', '512', '--overlap', '1',
+            '--suffix', '.jpg[Q=92,subsample=off,strip]'
+        ]);
+        $procDzi->setTimeout(0)->run();
+
+        if (!$procDzi->isSuccessful()) {
+            $fallback = new Process([$vips, 'dzsave', $uprightAbs, $dziNoExtAbs, '--tile-size', '256', '--overlap', '1', '--suffix', '.jpg']);
+            $fallback->setTimeout(0)->run();
+            if (!$fallback->isSuccessful()) {
+                $err = trim($procDzi->getErrorOutput() . PHP_EOL . $fallback->getErrorOutput());
+                throw new \Exception("Deep Zoom conversion failed: {$err}");
+            }
+        }
+
+        // Thumbnail
+        $procThumb = new Process([$vips, 'thumbnail', $uprightAbs, $thumbAbs, '600', '--crop', 'centre']);
+        $procThumb->setTimeout(0)->run();
+        $thumbPathForDb = $procThumb->isSuccessful() ? $thumbRel : null;
+
+        if ($createDb) {
+            Image::create([
+                'title'          => $data['title'],
+                'type'           => $data['type'] ?? null,
+                'description'    => $data['description'] ?? null,
+                'thumbnail_path' => $thumbPathForDb,
+                'dzi_path'       => $dziRel,
+            ]);
+        }
+
+        return [
+            'thumbnail_path' => $thumbPathForDb,
+            'dzi_path'       => $dziRel,
+        ];
     }
 }

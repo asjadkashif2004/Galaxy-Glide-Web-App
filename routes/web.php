@@ -4,14 +4,12 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ImageController;
 use App\Http\Controllers\ProfileController;
 
-/* ---------- Public (Users) ---------- */
 Route::get('/', [ImageController::class, 'index'])->name('home');
 Route::get('/images', [ImageController::class, 'index'])->name('images.index');
 Route::get('/images/{image}', [ImageController::class, 'show'])->name('images.show');
 
 require __DIR__.'/auth.php';
 
-/* ---------- Dashboard redirect ---------- */
 Route::get('/dashboard', function () {
     $user = auth()->user();
 
@@ -22,7 +20,6 @@ Route::get('/dashboard', function () {
     return view('profile.dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
-/* ---------- Admin Routes ---------- */
 Route::middleware(['auth', 'admin'])
     ->prefix('admin')
     ->name('admin.')
@@ -35,7 +32,6 @@ Route::middleware(['auth', 'admin'])
         Route::delete('/images/{image}', [ImageController::class, 'destroy'])->name('images.destroy');
     });
 
-/* ---------- User Profile ---------- */
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');

@@ -141,7 +141,7 @@
 <section class="hero">
   <div>
     <h1>Explore Space like Google Maps</h1>
-    <p>Zoom through gigapixel NASA imagery, label features, and compare changes over time — all in your browser.</p>
+    <p>Zoom through gigapixel NASA imagery, label features, and compare changes over time all in your browser.</p>
     <div style="display:flex;gap:10px;flex-wrap:wrap">
       <a href="#gallery" class="cta" title="Start Exploring">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0b0f17" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">

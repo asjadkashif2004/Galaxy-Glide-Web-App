@@ -207,7 +207,7 @@
           </div>
           <div>
             <span class="badge">ADMIN ACCESS ONLY</span>
-            <h1>NASA Zoom Explorer</h1>
+            <h1>Galaxy Glide</h1>
             <div class="sub">Secure portal for managing deep-zoom datasets.</div>
           </div>
         </div>
