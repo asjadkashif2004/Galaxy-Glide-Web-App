@@ -1,6 +1,4 @@
-
-
-# 🚀 NASA Zoom Explorer — Web App
+# 🚀 Galaxy Glide — Web App
 
 A Laravel-based platform that allows users to **explore massive NASA space images** with deep zoom support.
 Admins can upload and manage high-resolution space datasets, while users can view and explore them interactively.
