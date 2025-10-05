@@ -12,7 +12,7 @@ Admins can upload and manage high-resolution space datasets, while users can vie
 
   * **Admin:** Upload, manage, and delete datasets.
   * **User:** Explore space datasets interactively.
-* 🪐 **High-Resolution Image Support** (JPG, TIFF → converted into Deep Zoom tiles).
+* 🪐 **High-Resolution Image Support** (JPG, JEPG → converted into Deep Zoom tiles).
 * 🌍 **Cross-device Access** (supports public viewing via ngrok/hosting).
 * 🎨 **Modern UI** with starry background animations.
 
@@ -73,8 +73,7 @@ php artisan migrate --seed
 
 👉 This creates:
 
-* An **admin account** (`admin@example.com / password`)
-* A **test user account** (`test@example.com / password`)
+* An **admin account** (`admin@example.com / password123`)
 
 ### 5️⃣ Storage Symlink
 
